@@ -1,0 +1,28 @@
+{
+  "name": "covid-tracker-server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "nxrvlg",
+  "license": "MIT",
+  "scripts": {
+    "build": "netlify-lambda build src/express",
+    "start": "nodemon src",
+    "start:lambda": "netlify-lambda serve src/express"
+  },
+  "dependencies": {
+    "@paypal/checkout-server-sdk": "^1.0.3",
+    "@paypal/payouts-sdk": "^1.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^10.0.0",
+    "express": "^4.17.1",
+    "mongoose": "^6.0.2",
+    "nodemailer": "^6.7.0",
+    "passport": "^0.4.1",
+    "passport-jwt": "^4.0.0"
+  },
+  "devDependencies": {
+    "netlify-lambda": "^2.0.14",
+    "nodemon": "^2.0.12",
+    "serverless-http": "^2.7.0"
+  }
+}
