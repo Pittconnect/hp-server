@@ -104,9 +104,9 @@ router.post("/login", function (req, res, next) {
 // Register a new user
 router.post("/register", async (req, res, next) => {
   const username = req.body.username;
-  let senderBatchId = `Test_SDK_${Math.random().toString(36).substring(7)}`;
+  // let senderBatchId = `Test_SDK_${Math.random().toString(36).substring(7)}`;
 
-  console.log("senderBatchId: ", senderBatchId);
+  // console.log("senderBatchId: ", senderBatchId);
 
   // const payment = {
   //   sender_batch_header: {
@@ -147,17 +147,17 @@ router.post("/register", async (req, res, next) => {
   //   ],
   // };
 
-  const request = payment.request();
-  request.requestBody({});
+  // const request = payment.request();
+  // request.requestBody({});
 
-  let response = await payment.client().execute(request);
-  console.log(`Response: ${JSON.stringify(response)}`);
+  // let response = await payment.client().execute(request);
+  // console.log(`Response: ${JSON.stringify(response)}`);
 
-  res.json({
-    success: false,
-    msg: "Username already exists",
-  });
-  return;
+  // res.json({
+  //  success: false,
+  //  msg: "Username already exists",
+  //});
+  //return;
 
   const result = await User.find({ username });
   console.log("[REGISTER] -> result: ", result);
