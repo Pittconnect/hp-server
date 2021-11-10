@@ -4,13 +4,13 @@ const User = mongoose.model("User");
 const passport = require("passport");
 const utils = require("../utils/password");
 const nodemailer = require("../config/nodemailer");
-// const payment = require("../config/payment");
 const paypal = require("@paypal/checkout-server-sdk");
 
-let clientId = process.env.PAYPAL_CLIENT_ID;
-let clientSecret = process.env.PAYPAL_CLIENT_SECRET;
-let environment = new paypal.core.SandboxEnvironment(clientId, clientSecret);
-let client = new paypal.core.PayPalHttpClient(environment);
+const clientId = process.env.PAYPAL_CLIENT_ID;
+const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
+// const environment = new paypal.core.LiveEnvironment(clientId, clientSecret);
+const environment = new paypal.core.SandboxEnvironment(clientId, clientSecret);
+const client = new paypal.core.PayPalHttpClient(environment);
 
 router.get("/confirm/:confirmationCode", async (req, res, next) => {
   console.log("[CONFIRM] -> confirmationCode: ", req.params.confirmationCode);
@@ -101,85 +101,113 @@ router.post("/login", function (req, res, next) {
     });
 });
 
+router.post("/create-order", async (req, res, next) => {
+  const { price, email } = req.body;
+
+  const result = await User.find({ email });
+  console.log("[CREATE ORDER] -> result: ", result);
+
+  if (result.length) {
+    res.status(401).json({
+      success: false,
+      msg: "Email already exists",
+    });
+  } else {
+    const request = new paypal.orders.OrdersCreateRequest();
+    request.prefer("return=representation");
+    request.requestBody({
+      intent: "CAPTURE",
+      purchase_units: [
+        {
+          amount: {
+            currency_code: "USD",
+            value: price,
+          },
+        },
+      ],
+    });
+
+    try {
+      const order = await client.execute(request);
+      console.log("[CREATE ORDER] -> order: ", order);
+      res.status(201).json({ success: true, order: order.result });
+    } catch (error) {
+      console.log("[CREATE ORDER] -> order error: ", error.message);
+      res.status(401).json({ success: false, msg: error.message });
+    }
+  }
+});
+
+router.post("/capture-order", async (req, res, next) => {
+  const { username, email, password, order, pricing } = req.body;
+  console.log("[CAPTURE ORDER] -> order: ", order);
+  console.log("[CAPTURE ORDER] -> pricing: ", pricing);
+
+  let request = new paypal.orders.OrdersCreateRequest();
+  request = new paypal.orders.OrdersCaptureRequest(order.orderID);
+  request.requestBody({});
+
+  const saltHash = utils.genPassword(password);
+
+  const salt = saltHash.salt;
+  const hash = saltHash.hash;
+
+  console.log("[REGISTER] -> username: ", username);
+  const newUser = new User({
+    username,
+    email,
+    hash,
+    salt,
+    pricing,
+    confirmationCode: utils.genEncryptedKey({ email }),
+  });
+  console.log("[CAPTURE ORDER] -> newUser: ", newUser);
+
+  try {
+    const user = await newUser.save();
+    console.log("[CAPTURE ORDER] -> user: ", user);
+
+    const emailResponse = await nodemailer.sendConfirmationEmail(
+      user.username,
+      user.email,
+      user.confirmationCode
+    );
+    console.log("[CAPTURE ORDER] -> emailResponse: ", emailResponse);
+
+    const orderResponse = await client.execute(request);
+    console.log("[CAPTURE ORDER] -> orderResponse: ", orderResponse);
+
+    res.json({ success: true, msg: "User successfully created" });
+  } catch (err) {
+    console.log("[CAPTURE ORDER] -> err: ", err.message);
+    res.status(500).json({ success: false, msg: err.message });
+  }
+});
+
 // Register a new user
 router.post("/register", async (req, res, next) => {
-  const username = req.body.username;
-  // let senderBatchId = `Test_SDK_${Math.random().toString(36).substring(7)}`;
+  const { username, email, password } = req.body;
 
-  // console.log("senderBatchId: ", senderBatchId);
-
-  // const payment = {
-  //   sender_batch_header: {
-  //     recipient_type: "EMAIL",
-  //     email_message: "Dbilia USD Payouts",
-  //     note: "USD withdrawal request",
-  //     sender_batch_id: new Date().toISOString(), // must be unique per batch
-  //     email_subject: "[Dbilia] You've requested for withdrawal.",
-  //   },
-  //   items: [
-  //     {
-  //       note: "USD withdrawal request",
-  //       amount: {
-  //         currency: "USD",
-  //         value: 123,
-  //       },
-  //       receiver: "sb-5zwh38384833@business.example.com",
-  //       sender_item_id: "4FX733YULQG68",
-  //     },
-  //   ],
-  // };
-  // let payoutBacht = {
-  //   sender_batch_header: {
-  //     recipient_type: "EMAIL",
-  //     sender_batch_id: senderBatchId,
-  //     email_subject: 'TEST PAYOUT',
-  //   },
-  //   items: [
-  //     {
-  //       receiver: ,
-  //       note: 'USD withdrawal request',
-  //       sender_item_id: "15300979",
-  //       amount: {
-  //         currency: "USD",
-  //         value: 103,
-  //       },
-  //     },
-  //   ],
-  // };
-
-  // const request = payment.request();
-  // request.requestBody({});
-
-  // let response = await payment.client().execute(request);
-  // console.log(`Response: ${JSON.stringify(response)}`);
-
-  // res.json({
-  //  success: false,
-  //  msg: "Username already exists",
-  //});
-  //return;
-
-  const result = await User.find({ username });
+  const result = await User.find({ email });
   console.log("[REGISTER] -> result: ", result);
 
   if (result.length) {
     res.json({
       success: false,
-      msg: "Username already exists",
+      msg: "Email already exists",
     });
   } else {
-    const saltHash = utils.genPassword(req.body.password);
+    const saltHash = utils.genPassword(password);
 
     const salt = saltHash.salt;
     const hash = saltHash.hash;
-    const email = req.body.email;
 
     console.log("[REGISTER] -> username: ", username);
     const newUser = new User({
       username,
       email,
-      hash: hash,
-      salt: salt,
+      hash,
+      salt,
       confirmationCode: utils.genEncryptedKey({ email }),
     });
     console.log("[REGISTER] -> newUser: ", newUser);
@@ -195,7 +223,7 @@ router.post("/register", async (req, res, next) => {
       );
       console.log("[REGISTER] -> emailResponse: ", emailResponse);
 
-      res.json({ success: true, user });
+      res.json({ success: true, msg: "User successfully created" });
     } catch (err) {
       console.log("[REGISTER] -> err: ", err.message);
       res.json({ success: false, msg: err.message });

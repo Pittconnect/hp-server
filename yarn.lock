@@ -903,13 +903,6 @@
   dependencies:
     "@paypal/paypalhttp" "^1.0.1"
 
-"@paypal/payouts-sdk@^1.1.1":
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/@paypal/payouts-sdk/-/payouts-sdk-1.1.1.tgz#c712252191d572e160f290f495e21ae9eb26ddcf"
-  integrity sha512-m8hICfBjrf8WKXYGt84wVS7YLa+exB/HQwItn33ArmDDH1Hno0vqwwE2oY7TNTuKcBpxSE75D9KMrtNlVN9kZQ==
-  dependencies:
-    "@paypal/paypalhttp" "^1.0.1"
-
 "@paypal/paypalhttp@^1.0.1":
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/@paypal/paypalhttp/-/paypalhttp-1.0.1.tgz#406e337bf86cec7ea58c42eb167eb9b57ed88110"

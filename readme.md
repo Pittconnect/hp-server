@@ -18,7 +18,11 @@ https://epic-curie-390efd.netlify.app/.netlify/functions/server/
 
 `/api` - root route for each next route
 
-`/register` - route for user registration
+`/register` - route for free user registration
+
+`/create-order` - route for creating paypal order
+
+`/capture-order` - route to approve PayPal order and create a paid user account
 
 `/login` - route to login user
 

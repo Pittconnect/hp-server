@@ -14,6 +14,10 @@ const createUserSchema = () => {
       enum: ["Pending", "Active"],
       default: "Pending",
     },
+    pricing: {
+      type: String,
+      default: "0",
+    },
     confirmationCode: {
       type: String,
       unique: true,
