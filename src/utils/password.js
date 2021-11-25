@@ -23,17 +23,17 @@ function validPassword(password, hash, salt) {
 }
 
 function issueJWT(user) {
-  const _id = user._id;
+  const { _id, role } = user;
 
   const expiresIn = "1d";
 
   const payload = {
     sub: _id,
-    iat: Date.now(),
+    role,
   };
 
   const signedToken = jsonwebtoken.sign(payload, secretKey, {
-    expiresIn: expiresIn,
+    expiresIn,
   });
 
   return {

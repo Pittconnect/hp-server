@@ -6,11 +6,46 @@ const utils = require("../utils/password");
 const nodemailer = require("../config/nodemailer");
 const paypal = require("@paypal/checkout-server-sdk");
 
+const {
+  verifiedFunction: ensureAuth,
+  checkAdmin,
+} = require("./verifyJwtToken");
+const {
+  getLoggedInUser,
+  getAllUsers,
+  // getAllActiveUsers,
+  // getSingleUser,
+  editUserAction,
+  editUsersAction,
+  deleteUserAction,
+} = require("../controllers/userController");
+
 const clientId = process.env.PAYPAL_CLIENT_ID;
 const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
 // const environment = new paypal.core.LiveEnvironment(clientId, clientSecret);
 const environment = new paypal.core.SandboxEnvironment(clientId, clientSecret);
 const client = new paypal.core.PayPalHttpClient(environment);
+
+router.get("/", ensureAuth, getAllUsers);
+router.get("/me", ensureAuth, getLoggedInUser);
+
+router.patch(
+  "/edit-user",
+  passport.authenticate("jwt", { session: false }),
+  editUserAction
+);
+
+router.patch(
+  "/edit-users",
+  passport.authenticate("jwt", { session: false }),
+  editUsersAction
+);
+
+router.get(
+  "/delete/:id",
+  [passport.authenticate("jwt", { session: false }), checkAdmin],
+  deleteUserAction
+);
 
 router.get("/confirm/:confirmationCode", async (req, res, next) => {
   console.log("[CONFIRM] -> confirmationCode: ", req.params.confirmationCode);
@@ -58,9 +93,9 @@ router.get(
   }
 );
 
-// Validate an existing user and issue a JWT
 router.post("/login", function (req, res, next) {
   User.findOne({ username: req.body.username })
+    .select("+hash +salt")
     .then((user) => {
       if (!user) {
         return res
@@ -89,6 +124,7 @@ router.post("/login", function (req, res, next) {
           success: true,
           token: tokenObject.token,
           expiresIn: tokenObject.expires,
+          role: user.role,
         });
       } else {
         res

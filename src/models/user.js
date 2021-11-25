@@ -5,10 +5,24 @@ const createUserSchema = () => {
   const Schema = mongoose.Schema;
 
   const UserSchema = new Schema({
-    username: String,
-    email: String,
-    hash: String,
-    salt: String,
+    __v: {
+      type: Number,
+      select: false,
+    },
+    username: {
+      type: String,
+      required: true,
+      min: 6,
+      max: 255,
+    },
+    email: {
+      type: String,
+      required: true,
+      min: 6,
+      max: 255,
+    },
+    hash: { type: String, select: false },
+    salt: { type: String, select: false },
     status: {
       type: String,
       enum: ["Pending", "Active"],
@@ -26,6 +40,15 @@ const createUserSchema = () => {
       type: String,
       default: null,
       unique: false,
+    },
+    role: {
+      type: String,
+      default: "member",
+      enum: ["admin", "vip", "member"],
+    },
+    location: {
+      type: String,
+      default: "",
     },
   });
 

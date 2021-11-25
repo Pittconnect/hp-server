@@ -49,6 +49,8 @@ const routes = require("../routes");
 // pattern - .netlify/nameOfBuildFolder/nameOfThisFile/
 app.use("/.netlify/functions/server", routes);
 
+const { createSuperAdmin } = require("../controllers/authController");
+
 module.exports = app;
 const handler = serverless(app);
 module.exports.handler = async (event, context) => {
@@ -56,7 +58,12 @@ module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
 
   // Get an instance of our database connection
-  await createDbConnection();
+  const connection = await createDbConnection();
+
+  // Create Super Admin if database connected successfully
+  if (connection) {
+    await createSuperAdmin();
+  }
 
   const result = await handler(event, context);
   console.log("SERVERLESS HANDLER FINISHED");
