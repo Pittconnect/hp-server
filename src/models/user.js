@@ -48,7 +48,7 @@ const createUserSchema = () => {
     },
     location: {
       type: String,
-      default: "",
+      default: "usa",
     },
   });
 

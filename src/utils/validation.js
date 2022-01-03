@@ -4,12 +4,27 @@ const Joi = require("joi");
 const userEditSchema = () => {
   return Joi.object({
     role: Joi.string().required(),
-    location: Joi.string().allow(""),
+    location: Joi.string().required(),
+  });
+};
+
+const userCreateSchema = () => {
+  return Joi.object({
+    username: Joi.string().min(4).max(20).required(),
+    password: Joi.string().min(6).required(),
+    role: Joi.string().required(),
+    location: Joi.string().required(),
   });
 };
 
 const userEditValidation = (data) => {
   const schema = userEditSchema();
+
+  return schema.validate(data);
+};
+
+const userCreateValidation = (data) => {
+  const schema = userCreateSchema();
 
   return schema.validate(data);
 };
@@ -33,6 +48,7 @@ const usersEditValidation = (data) => {
 
 module.exports = {
   userEditValidation,
+  userCreateValidation,
   usersEditValidation,
   //   passwordResetValidation
 };

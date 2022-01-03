@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 const router = require("express").Router();
 const User = mongoose.model("User");
-const passport = require("passport");
 const utils = require("../utils/password");
 const nodemailer = require("../config/nodemailer");
 const paypal = require("@paypal/checkout-server-sdk");
@@ -13,39 +12,26 @@ const {
 const {
   getLoggedInUser,
   getAllUsers,
-  // getAllActiveUsers,
-  // getSingleUser,
   editUserAction,
   editUsersAction,
   deleteUserAction,
+  crateUserAction,
 } = require("../controllers/userController");
+const { isUserExist } = require("../helpers/user");
 
 const clientId = process.env.PAYPAL_CLIENT_ID;
 const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
-const environment = new paypal.core.LiveEnvironment(clientId, clientSecret);
-// const environment = new paypal.core.SandboxEnvironment(clientId, clientSecret);
+// const environment = new paypal.core.LiveEnvironment(clientId, clientSecret);
+const environment = new paypal.core.SandboxEnvironment(clientId, clientSecret);
 const client = new paypal.core.PayPalHttpClient(environment);
 
 router.get("/", ensureAuth, getAllUsers);
 router.get("/me", ensureAuth, getLoggedInUser);
 
-router.patch(
-  "/edit-user",
-  passport.authenticate("jwt", { session: false }),
-  editUserAction
-);
-
-router.patch(
-  "/edit-users",
-  passport.authenticate("jwt", { session: false }),
-  editUsersAction
-);
-
-router.get(
-  "/delete/:id",
-  [passport.authenticate("jwt", { session: false }), checkAdmin],
-  deleteUserAction
-);
+router.patch("/edit-user", ensureAuth, editUserAction);
+router.patch("/edit-users", ensureAuth, editUsersAction);
+router.post("/create", [ensureAuth, checkAdmin], crateUserAction);
+router.get("/delete/:id", [ensureAuth, checkAdmin], deleteUserAction);
 
 router.get("/confirm/:confirmationCode", async (req, res, next) => {
   console.log("[CONFIRM] -> confirmationCode: ", req.params.confirmationCode);
@@ -82,16 +68,12 @@ router.get("/confirm/:confirmationCode", async (req, res, next) => {
     });
 });
 
-router.get(
-  "/protected",
-  passport.authenticate("jwt", { session: false }),
-  (req, res, next) => {
-    res.status(200).json({
-      success: true,
-      msg: "You are successfully authenticated to this route!",
-    });
-  }
-);
+router.get("/protected", ensureAuth, (req, res, next) => {
+  res.status(200).json({
+    success: true,
+    msg: "You are successfully authenticated to this route!",
+  });
+});
 
 router.post("/login", function (req, res, next) {
   User.findOne({ username: req.body.username })
@@ -140,10 +122,10 @@ router.post("/login", function (req, res, next) {
 router.post("/create-order", async (req, res, next) => {
   const { price, email } = req.body;
 
-  const result = await User.find({ email });
-  console.log("[CREATE ORDER] -> result: ", result);
+  const isExist = await isUserExist({ email });
+  console.log("[CREATE ORDER] -> isExist: ", isExist);
 
-  if (result.length) {
+  if (isExist) {
     res.status(401).json({
       success: false,
       msg: "Email already exists",
@@ -252,12 +234,14 @@ router.post("/register", async (req, res, next) => {
       const user = await newUser.save();
       console.log("[REGISTER] -> user: ", user);
 
-      const emailResponse = await nodemailer.sendConfirmationEmail(
-        user.username,
-        user.email,
-        user.confirmationCode
-      );
-      console.log("[REGISTER] -> emailResponse: ", emailResponse);
+      if (user) {
+        const emailResponse = await nodemailer.sendConfirmationEmail(
+          user.username,
+          user.email,
+          user.confirmationCode
+        );
+        console.log("[REGISTER] -> emailResponse: ", emailResponse);
+      }
 
       res.json({ success: true, msg: "User successfully created" });
     } catch (err) {

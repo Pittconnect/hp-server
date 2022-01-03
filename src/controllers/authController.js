@@ -29,7 +29,6 @@ const createSuperAdmin = async () => {
     confirmationCode: "",
     resetToken: null,
     role: "admin",
-    location: "",
   });
 
   console.log("[CREATE SUPERADMIN] -> newUser: ", newUser);

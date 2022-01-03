@@ -41,8 +41,22 @@ const getSingleUserService = async (query) => {
   }
 };
 
+const createUser = async (newUser) => {
+  console.log("[CREATE USER] -> newUser: ", newUser);
+  try {
+    const user = await newUser.save();
+    const { __v, hash, salt, ...userData } = user._doc;
+    console.log("[CREATE USER] -> saved user: ", userData);
+
+    return userData;
+  } catch (err) {
+    throw Error(err);
+  }
+};
+
 module.exports = {
   getUsers,
   getAndEditUser,
   getSingleUserService,
+  createUser,
 };

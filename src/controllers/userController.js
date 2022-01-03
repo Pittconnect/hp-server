@@ -1,18 +1,19 @@
 const {
-  // getUser,
   getUsers,
-  // getActiveUsers,
   getAndEditUser,
   getSingleUserService,
+  createUser,
 } = require("../services/user.services");
-
 const {
   userEditValidation,
+  userCreateValidation,
   usersEditValidation,
 } = require("../utils/validation");
+const { isUserExist, createNewUser } = require("../helpers/user");
 
 const validation = {
   editUser: userEditValidation,
+  createUser: userCreateValidation,
   editUsers: usersEditValidation,
 };
 
@@ -40,24 +41,6 @@ const getAllUsers = async (req, res) => {
     return res.status(400).json({ success: false, msg: err.message });
   }
 };
-
-//   const getAllActiveUsers = async (req, res) => {
-//     try {
-//       const users = await getActiveUsers({ isActive: true });
-//       return res.status(200).json({ data: users });
-//     } catch (err) {
-//       return res.status(400).json({ error_msg: err.message });
-//     }
-//   };
-
-//   const getSingleUser = async (req, res) => {
-//     try {
-//       const user = await getSingleUserService({ _id: req.params.id });
-//       return res.status(200).json({ data: user });
-//     } catch (err) {
-//       return res.status(400).json({ error_msg: err.message });
-//     }
-//   };
 
 const getLoggedInUser = async (req, res) => {
   console.log("[GET LOGGEDIN USER] -> req.user: ", req.user);
@@ -110,7 +93,7 @@ const deleteUserAction = async (req, res) => {
     const user = await getSingleUserService({ _id: id });
     console.log("[DELETE USER ACTION] -> user: ", user);
     if (user.role === "admin") {
-      return res.status(401).json({ success: false, msg: "Nice try" });
+      return res.status(409).json({ success: false, msg: "Nice try" });
     }
     await user.remove();
     return res.json({ success: true, msg: "Successefully removed user" });
@@ -119,12 +102,43 @@ const deleteUserAction = async (req, res) => {
   }
 };
 
+const crateUserAction = async (req, res) => {
+  console.log("[CREATE USER ACTION] -> body: ", req.body);
+  const { username, password, role, location } = req.body;
+  try {
+    handleValidation(req.body, res, "createUser");
+
+    const isExist = await isUserExist({ username });
+    console.log("[CREATE USER ACTION] -> isExist: ", isExist);
+    if (isExist) {
+      return res
+        .status(409)
+        .json({ success: false, msg: "Username already taken" });
+    }
+
+    const newUser = createNewUser({
+      username,
+      password,
+      role,
+      location,
+      status: "Active",
+    });
+
+    console.log("[CREATE USER ACTION] -> newUser: ", newUser);
+    const user = await createUser(newUser);
+    console.log("[CREATE USER ACTION] -> user: ", user);
+
+    res.json({ success: true, user });
+  } catch (err) {
+    return res.status(400).json({ success: false, msg: err.message });
+  }
+};
+
 module.exports = {
   getAllUsers,
-  //   getAllActiveUsers,
   getLoggedInUser,
-  //   getSingleUser,
   editUserAction,
   editUsersAction,
   deleteUserAction,
+  crateUserAction,
 };
